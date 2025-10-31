@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Reserva do Jet — Calendário Mensal</title>
+
+<!-- FullCalendar CSS (CDN) -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+
+<style>
+/* =========== CONFIG =========== */
+/* Troque a senha admin padrão aqui, sem aspas */
+:root { --ADMIN_PASSWORD: admin123; }
+
+/* =========== THEME =========== */
+:root{
+  --radius:12px;
+  --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+html,body{height:100%;margin:0;font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{background:#071021;color:#e6f0f2;transition:background .18s,color .18s}
+body.light{background:#f7fbff;color:#042027}
+.container{max-width:1100px;margin:84px auto 84px;padding:12px}
+
+/* header */
+.header{position:fixed;left:0;right:0;top:0;height:64px;background:rgba(0,0,0,0.18);backdrop-filter:blur(6px);display:flex;gap:12px;align-items:center;padding:10px 14px;z-index:80}
+header .brand{display:flex;gap:10px;align-items:center}
+.logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(90deg,#ffd08a,#ffb86b);display:flex;align-items:center;justify-content:center;font-weight:800;color:#042027}
+.title{font-weight:800;font-size:16px}
+.header .nav{margin-left:16px;display:flex;gap:8px}
+.tab-btn{background:transparent;border:0;padding:8px 10px;border-radius:10px;color:inherit;font-weight:700;cursor:pointer}
+.tab-btn.active{background:rgba(255,255,255,0.04)}
+.header .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* cards & inputs */
+.card{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);margin-bottom:12px}
+.card h3{margin:0 0 8px 0}
+label{display:block;font-size:13px;margin-bottom:6px;color:inherit}
+input,select,textarea{width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;margin-bottom:8px}
+
+/* buttons */
+.btn{padding:8px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:800}
+.btn.primary{background:#00a8d6;color:#032027}
+.btn.outline{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+.small{font-size:13px;color:rgba(255,255,255,0.6)}
+
+/* layout */
+.grid{display:grid;grid-template-columns:320px 1fr;gap:12px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:1fr} .header .nav{display:none} .bottom-nav{display:flex}}
+.leftcol{position:relative}
+.rightcol{min-height:400px}
+
+/* calendar (FullCalendar container) */
+#calendar { background: transparent; border-radius:12px; padding:8px; }
+
+/* modal */
+.modal-backdrop{
+  position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:200;
+}
+.modal {
+  width:320px;
+  max-width:92%;
+  background:linear-gradient(180deg, rgba(10,20,28,0.98), rgba(6,12,18,0.98));
+  padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);
+  box-shadow:0 10px 30px rgba(0,0,0,0.6);
+  color:var(--text, #e6f0f2);
+}
+.modal h4{margin:0 0 10px 0}
+.periods{display:flex;flex-direction:column;gap:8px}
+.period-btn{
+  display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);
+  background:rgba(255,255,255,0.02);cursor:pointer;font-weight:700;
+}
+.period-btn.reserved{background:linear-gradient(90deg, rgba(0,128,96,0.12), rgba(0,0,0,0.04));}
+.period-btn .meta{font-size:12px;color:rgba(255,255,255,0.7);font-weight:600}
+
+/* small tweaks */
+.note{font-size:13px;color:rgba(255,255,255,0.6)}
+body.light .note{color:#55656a}
+hr{border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:13px}
+
+/* FullCalendar overrides for dark theme */
+.fc { color: #e6f0f2; }
+.fc .fc-toolbar-title { font-weight:800; }
+.fc .fc-daygrid-day-number { color: rgba(230,240,242,0.9); }
+.fc .fc-daygrid-event { background: rgba(0,168,214,0.12); color: #e6f0f2; border: 1px solid rgba(0,168,214,0.18); border-radius:6px; padding:2px 4px; font-weight:700; }
+.fc .fc-button { background: transparent; border:1px solid rgba(255,255,255,0.06); color:inherit; border-radius:8px; padding:6px 8px; }
+.fc .fc-button-primary { background: #00a8d6; color:#042027; border:none; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <div class="logo">🛥</div>
+      <div>
+        <div class="title">Reserva do Jet</div>
+        <div style="font-size:12px;opacity:0.8">Seg–Dom • Manhã / Tarde / Noite</div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Navegação principal">
+      <button class="tab-btn active" data-tab="policy" type="button">Política de Reserva</button>
+      <button class="tab-btn" data-tab="booking" type="button">Agendamento</button>
+    </nav>
+
+    <div class="right">
+      <button id="themeBtn" class="btn outline" title="Alternar tema" type="button">🌙</button>
+      <div id="userArea" style="min-width:140px"></div>
+      <button id="btnAdminToggle" class="btn outline" type="button">Admin</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid">
+      <div class="leftcol">
+        <!-- AUTH / PROFILE / ADMIN -->
+        <div id="authCard" class="card">
+          <div id="authForms">
+            <div id="registerForm">
+              <h3>Criar conta</h3>
+              <label>Nome</label><input id="reg-name" type="text" placeholder="Ex: Bernardo" />
+              <label>E-mail</label><input id="reg-email" type="email" placeholder="seu@email.com" />
+              <label>Senha</label><input id="reg-pass" type="password" />
+              <label>Key (fornecida pelo admin)</label><input id="reg-key" type="text" placeholder="Cole a chave aqui" />
+              <div style="display:flex;gap:8px">
+                <button id="btnRegister" class="btn primary" type="button">Criar conta</button>
+                <button id="toLogin" class="btn outline" type="button">Ir para Login</button>
+              </div>
+              <div class="note">A key será consumida ao criar conta. Só quem tem key pode cadastrar.</div>
+            </div>
+
+            <div id="loginForm" style="display:none">
+              <h3>Entrar</h3>
+              <label>E-mail</label><input id="login-email" type="email" />
+              <label>Senha</label><input id="login-pass" type="password" />
+              <div style="display:flex;gap:8px">
+                <button id="btnLogin" class="btn primary" type="button">Entrar</button>
+                <button id="toRegister" class="btn outline" type="button">Criar conta</button>
+              </div>
+            </div>
+
+            <div id="loggedBox" style="display:none">
+              <h3>Meu perfil</h3>
+              <div><strong id="meName"></strong></div>
+              <div class="small" id="meEmail"></div>
+              <div style="margin-top:10px">
+                <h4>Minhas reservas</h4>
+                <div id="myReservations" class="note">Nenhuma reserva</div>
+                <div style="margin-top:8px">
+                  <button id="btnLogout" class="btn outline" type="button">Sair</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminCard" class="card" style="display:none">
+          <h3>Admin</h3>
+          <label>Senha Admin</label>
+          <input id="adminPass" type="password" placeholder="senha admin" />
+          <div style="display:flex;gap:8px">
+            <button id="btnAdminLogin" class="btn primary" type="button">Entrar Admin</button>
+            <button id="btnAdminLogout" class="btn outline" style="display:none" type="button">Sair Admin</button>
+          </div>
+
+          <div id="adminArea" style="display:none;margin-top:10px">
+            <h4>Gerar key</h4>
+            <div style="display:flex;gap:8px">
+              <input id="newKeyNote" type="text" placeholder="Observação (ex: 'Sáb only')" />
+              <button id="genKey" class="btn primary" type="button">Gerar</button>
+            </div>
+            <div class="note">A key gerada aparece abaixo e pode ser revogada.</div>
+
+            <h4 style="margin-top:12px">Keys válidas</h4>
+            <table class="table" id="keysTable" aria-live="polite">
+              <thead><tr><th>Key</th><th>Obs</th><th>Ações</th></tr></thead>
+              <tbody></tbody>
+            </table>
+
+            <h4 style="margin-top:12px">Usuários cadastrados</h4>
+            <table class="table" id="usersTable">
+              <thead><tr><th>Nome</th><th>E-mail</th><th>Reg.</th></tr></thead>
+              <tbody></tbody>
+            </table>
+
+            <div style="margin-top:12px" class="tools">
+              <button id="btnClearReservations" class="btn outline" type="button">Limpar reservas (mês)</button>
+              <button id="btnExport" class="btn outline" type="button">Exportar dados (console)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Informações</h3>
+          <div class="note">Modo claro/escuro, admin por senha e cadastro via key. Tudo salvo localmente no navegador do seu celular.</div>
+        </div>
+
+      </div>
+
+      <div class="rightcol">
+        <!-- POLICY -->
+        <div id="tab-policy" class="card policy" role="region" aria-label="Política de reserva">
+          <h2>POLÍTICA DE RESERVA DO JET</h2>
+
+          <div class="section">
+            <h3>Finais de semana</h3>
+            <ul>
+              <li>Quem já tem agenda só pode reagendar para outro final de semana após a data de uso já agendada.</li>
+              <li>As reservas devem ser feitas de preferência com <strong>48h de antecedência</strong>.</li>
+              <li>O uso sem agendamento prévio é permitido se o jet estiver disponível (ninguém agendou).</li>
+              <li>Caso já tenha uma data agendada, mas não vá usar, avisar no grupo e cancelar a agenda no app para os colegas poderem se planejar.</li>
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3>Durante a semana</h3>
+            <ul>
+              <li>O uso será menor, então basta informar no grupo e colocar na agenda quando pretende usar, preferencialmente com <strong>24h de antecedência</strong>.</li>
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3>Feriados</h3>
+            <ul>
+              <li>Cada feriado relevante será objeto de um <strong>sorteio entre os 4 sócios</strong>.</li>
+              <li>O sócio sorteado <strong>não participa dos próximos sorteios</strong> até que todos os outros tenham sido sorteados uma vez.</li>
+              <li>Assim, a cada <strong>ciclo de 4 feriados</strong>, todos terão tido 1 feriado exclusivo.</li>
+            </ul>
+            <h4>Reinício do ciclo</h4>
+            <ul>
+              <li>Após o quarto feriado (quando todos já tiverem sido sorteados uma vez), o sistema <strong>reinicia do zero</strong>.</li>
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3>Trocas entre sócios</h3>
+            <ul>
+              <li>O sócio sorteado pode <strong>ceder ou trocar</strong> seu direito com outro mediante acordo mútuo.</li>
+              <li>Essa troca <strong>não altera a ordem do ciclo</strong> (continua contando como "sorteado").</li>
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3>Regras de uso e devolução</h3>
+            <ul>
+              <li>O tanque deve ser <strong>devolvido cheio</strong>.</li>
+              <li>Qualquer dano deve ser <strong>comunicado no grupo dos sócios</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- BOOKING (AGENDAMENTO) - substituído pelo calendário mensal -->
+        <div id="tab-booking" class="card" style="display:none" role="region" aria-label="Agendamento">
+          <div class="calendar-head" style="margin-bottom:8px">
+            <div>
+              <h3>Calendário mensal</h3>
+              <div class="small">Clique em um dia para ver os períodos (Manhã / Tarde / Noite).</div>
+            </div>
+          </div>
+
+          <div id="calendar"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom nav mobile -->
+  <div class="bottom-nav" aria-hidden="true">
+    <button class="tab-btn" data-tab="policy" type="button">Política</button>
+    <button class="tab-btn" data-tab="booking" type="button">Agendamento</button>
+    <button id="openAuth" class="tab-btn" type="button">Minha Conta</button>
+  </div>
+
+  <!-- Day modal (invisível até abrir) -->
+  <div id="dayModal" class="modal-backdrop" style="display:none">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle">
+      <h4 id="dayModalTitle">Dia</h4>
+      <div id="dayModalDate" style="margin-bottom:8px" class="small"></div>
+      <div class="periods" id="periodsList"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+        <button id="closeDayModal" class="btn outline" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- FullCalendar JS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+<script>
+/* =========================
+   APP LOGIC (single-file) com calendário mensal (FullCalendar)
+   =========================
+*/
+
+const STORAGE = {
+  USERS: 'jr_users',
+  KEYS: 'jr_keys',
+  RESERVAS: 'jr_reservas',
+  THEME: 'jr_theme',
+  SESSION: 'jr_session',
+  IS_ADMIN: 'jr_is_admin'
+};
+
+/* helper */
+const $ = (s, parent=document)=> parent.querySelector(s);
+const $$ = (s, parent=document)=> Array.from(parent.querySelectorAll(s));
+const nowISO = ()=> new Date().toISOString();
+
+/* Admin default password (change in :root if needed) */
+const ADMIN_PASSWORD = (function(){
+  try{
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--ADMIN_PASSWORD').trim();
+    return v || 'admin123';
+  }catch(e){ return 'admin123'; }
+})();
+
+/* init storage helpers */
+function load(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ return fallback; }
+}
+function save(key, val){
+  try{
+    localStorage.setItem(key, JSON.stringify(val));
+  }catch(e){}
+}
+
+/* ensure inits */
+if(!load(STORAGE.USERS, null)) save(STORAGE.USERS, []);
+if(!load(STORAGE.KEYS, null)) save(STORAGE.KEYS, []);
+if(!load(STORAGE.RESERVAS, null)) save(STORAGE.RESERVAS, {});
+
+/* Theme - store as plain string in jr_theme (not via save) to avoid JSON issues */
+const themeBtn = $('#themeBtn');
+function applyTheme(t){
+  if(t==='light'){ document.body.classList.add('light'); themeBtn.textContent = '🌞'; }
+  else { document.body.classList.remove('light'); themeBtn.textContent = '🌙'; }
+  localStorage.setItem(STORAGE.THEME, t);
+}
+const savedThemeRaw = localStorage.getItem(STORAGE.THEME);
+const savedTheme = savedThemeRaw ? savedThemeRaw : 'dark';
+applyTheme(savedTheme);
+themeBtn.addEventListener('click', ()=>{
+  const cur = document.body.classList.contains('light') ? 'light' : 'dark';
+  applyTheme(cur === 'light' ? 'dark' : 'light');
+});
+
+/* Tabs */
+function setTab(name){
+  $$('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+  $('#tab-policy').style.display = name==='policy' ? 'block' : 'none';
+  $('#tab-booking').style.display = name==='booking' ? 'block' : 'none';
+  // when switching to booking ensure calendar is updated
+  if(name === 'booking') {
+    if(window._fcInstance) window._fcInstance.render();
+    // scroll to top so calendar visible on mobile
+    window.scrollTo({top: 0, behavior:'smooth'});
+  }
+}
+$$('.tab-btn').forEach(b=> b.addEventListener('click', (e)=> {
+  const tab = e.currentTarget.dataset.tab;
+  if(tab) setTab(tab);
+}));
+
+setTab('policy');
+
+/* Auth UI */
+const users = ()=> load(STORAGE.USERS, []);
+const keys = ()=> load(STORAGE.KEYS, []);
+const reservas = ()=> load(STORAGE.RESERVAS, {});
+function currentUser(){ return localStorage.getItem(STORAGE.SESSION); }
+function isAdminSession(){ return localStorage.getItem(STORAGE.IS_ADMIN) === 'true'; }
+
+function renderUserArea(){
+  const ua = $('#userArea');
+  const session = currentUser();
+  if(session){
+    const u = users().find(x=> x.email===session);
+    if(u){
+      ua.innerHTML = `<div style="text-align:right"><div style="font-weight:800">${u.name}</div><div style="font-size:12px">${u.email}</div></div>`;
+      $('#registerForm').style.display='none';
+      $('#loginForm').style.display='none';
+      $('#loggedBox').style.display='block';
+      $('#meName').textContent = u.name;
+      $('#meEmail').textContent = u.email;
+      renderMyReservations();
+    } else {
+      // session stale
+      localStorage.removeItem(STORAGE.SESSION);
+      ua.innerHTML = `<div style="font-size:13px">Convidado</div>`;
+      $('#registerForm').style.display='block';
+      $('#loginForm').style.display='none';
+      $('#loggedBox').style.display='none';
+    }
+  } else {
+    ua.innerHTML = `<div style="font-size:13px">Convidado</div>`;
+    $('#registerForm').style.display='block';
+    $('#loginForm').style.display='none';
+    $('#loggedBox').style.display='none';
+  }
+  // admin visibility
+  $('#adminCard').style.display = isAdminSession() ? 'block' : 'none';
+}
+
+/* switch to login/register */
+$('#toLogin').addEventListener('click', ()=>{ $('#registerForm').style.display='none'; $('#loginForm').style.display='block'; });
+$('#toRegister').addEventListener('click', ()=>{ $('#loginForm').style.display='none'; $('#registerForm').style.display='block'; });
+$('#openAuth').addEventListener('click', ()=>{ window.scrollTo({top:0,behavior:'smooth'}); $('#registerForm').scrollIntoView({behavior:'smooth'}); });
+
+/* Register */
+$('#btnRegister').addEventListener('click', ()=>{ 
+  const name = $('#reg-name').value.trim();
+  const email = $('#reg-email').value.trim().toLowerCase();
+  const pass = $('#reg-pass').value;
+  const keyInput = $('#reg-key').value.trim();
+
+  if(!name || !email || !pass || !keyInput){ alert('Preencha todos os campos e a key.'); return; }
+  // check key exists
+  const allKeys = keys();
+  const kIndex = allKeys.findIndex(k=> k.key === keyInput);
+  if(kIndex === -1){ alert('Key inválida. Peça uma key ao admin.'); return; }
+  // check user not exists
+  if(users().some(u=> u.email===email)){ alert('E-mail já cadastrado. Faça login.'); return; }
+  // create user
+  const u = { id: 'u_'+Date.now(), name, email, pass, registeredAt: nowISO() };
+  const us = users(); us.push(u); save(STORAGE.USERS, us);
+  // consume key (remove)
+  allKeys.splice(kIndex,1); save(STORAGE.KEYS, allKeys);
+  alert('Conta criada! Faça login.');
+  $('#reg-name').value=''; $('#reg-email').value=''; $('#reg-pass').value=''; $('#reg-key').value='';
+  renderKeysTable();
+  renderUsersTable();
+});
+
+/* Login */
+$('#btnLogin').addEventListener('click', ()=>{
+  const email = $('#login-email').value.trim().toLowerCase();
+  const pass = $('#login-pass').value;
+  const u = users().find(x=> x.email===email && x.pass===pass);
+  if(!u){ alert('E-mail ou senha inválidos.'); return; }
+  localStorage.setItem(STORAGE.SESSION, u.email);
+  renderUserArea();
+  alert('Logado como '+u.name);
+  $('#login-email').value=''; $('#login-pass').value='';
+});
+
+/* Logout */
+$('#btnLogout').addEventListener('click', ()=>{
+  localStorage.removeItem(STORAGE.SESSION);
+  renderUserArea();
+  alert('Desconectado.');
+});
+
+/* Admin toggle — corrigido */
+$('#btnAdminToggle').addEventListener('click', ()=>{
+  const card = $('#adminCard');
+  const isHidden = getComputedStyle(card).display === 'none';
+  if(isHidden){
+    card.style.display = 'block';
+    if(isAdminSession()){
+      $('#adminArea').style.display = 'block';
+      $('#btnAdminLogout').style.display = 'inline-block';
+      $('#btnAdminLogin').style.display = 'none';
+    } else {
+      $('#adminArea').style.display = 'none';
+      $('#btnAdminLogout').style.display = 'none';
+      $('#btnAdminLogin').style.display = 'inline-block';
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+    setTimeout(()=> $('#adminPass').focus(),120);
+  } else {
+    card.style.display = 'none';
+  }
+});
+
+/* Admin login */
+$('#btnAdminLogin').addEventListener('click', ()=>{
+  const pass = $('#adminPass').value;
+  if(String(pass) === String(ADMIN_PASSWORD)){
+    localStorage.setItem(STORAGE.IS_ADMIN, 'true');
+    $('#adminArea').style.display='block';
+    $('#btnAdminLogout').style.display='inline-block';
+    $('#btnAdminLogin').style.display='none';
+    $('#adminPass').value='';
+    renderKeysTable();
+    renderUsersTable();
+    renderUserArea();
+    alert('Sessão admin iniciada.');
+  } else alert('Senha admin incorreta.');
+});
+$('#btnAdminLogout').addEventListener('click', ()=>{
+  localStorage.removeItem(STORAGE.IS_ADMIN);
+  $('#adminArea').style.display='none';
+  $('#btnAdminLogout').style.display='none';
+  $('#btnAdminLogin').style.display='inline-block';
+  renderUserArea();
+});
+
+/* KEY generation & table */
+function randomKey(){ return Math.random().toString(36).slice(2,10).toUpperCase(); }
+$('#genKey').addEventListener('click', ()=>{
+  const note = $('#newKeyNote').value.trim();
+  const k = { key: randomKey(), note: note || '', createdAt: nowISO() };
+  const ks = keys(); ks.push(k); save(STORAGE.KEYS, ks);
+  $('#newKeyNote').value='';
+  renderKeysTable();
+});
+function renderKeysTable(){
+  const tbody = $('#keysTable tbody'); tbody.innerHTML='';
+  keys().forEach(k=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:700">${k.key}</td><td>${k.note||''}</td><td><button data-key="${k.key}" class="btn outline revokeKey" type="button">Revogar</button></td>`;
+    tbody.appendChild(tr);
+  });
+  $$('.revokeKey').forEach(btn=> btn.addEventListener('click', (e)=>{ 
+    const keyv = e.currentTarget.dataset.key;
+    const ks = keys().filter(x=> x.key !== keyv);
+    save(STORAGE.KEYS, ks);
+    renderKeysTable();
+    // atualizar calendário
+    if(window._fcInstance) window._fcInstance.refetchEvents();
+  }));
+}
+function renderUsersTable(){
+  const tbody = $('#usersTable tbody'); tbody.innerHTML='';
+  users().forEach(u=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${u.name}</td><td>${u.email}</td><td>${new Date(u.registeredAt).toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* export data for admin (simple) */
+$('#btnExport').addEventListener('click', ()=>{
+  console.log('USERS', load(STORAGE.USERS, []));
+  console.log('KEYS', load(STORAGE.KEYS, []));
+  console.log('RESERVAS', load(STORAGE.RESERVAS, {}));
+  alert('Dados exportados para console (abra o console do navegador).');
+});
+
+
+/* --- Calendar (FullCalendar) integration --- */
+
+let calendar; // FullCalendar instance
+
+// converte a estrutura reservas (por mês) em eventos
+function buildCalendarEvents(){
+  const all = reservas();
+  const events = [];
+  Object.keys(all).forEach(weekKey=>{
+    // weekKey is date-of-week start in older code; here we saved month-based or week-based - but we will iterate deeper
+    const weekData = all[weekKey];
+    Object.keys(weekData).forEach(day => {
+      const periods = weekData[day];
+      Object.keys(periods).forEach(p => {
+        const email = periods[p];
+        const user = users().find(u=> u.email === email);
+        const title = p + ' — ' + (user ? user.name : (email||''));
+        // event on day (all-day)
+        events.push({
+          title: title,
+          start: day,
+          allDay: true,
+          extendedProps: { period: p, email }
+        });
+      });
+    });
+  });
+  return events;
+}
+
+// open modal to show periods for a clicked day
+function openDayModal(dayStr){
+  $('#dayModalDate').textContent = new Date(dayStr).toLocaleDateString();
+  $('#dayModal').style.display = 'flex';
+  const list = $('#periodsList');
+  list.innerHTML = '';
+
+  // fetch existing reservation for that day
+  const all = reservas();
+  const weekKeys = Object.keys(all);
+  // find day in nested structure
+  let dayObj = null;
+  weekKeys.forEach(wk => {
+    if(all[wk] && all[wk][dayStr]) dayObj = all[wk][dayStr];
+  });
+
+  ['Manhã','Tarde','Noite'].forEach(period=>{
+    const reservedBy = dayObj && dayObj[period] ? dayObj[period] : null;
+    const div = document.createElement('div');
+    div.className = 'period-btn' + (reservedBy ? ' reserved' : '');
+    const spanLeft = document.createElement('div');
+    spanLeft.textContent = period;
+    const spanRight = document.createElement('div');
+    spanRight.className = 'meta';
+    if(reservedBy){
+      const user = users().find(u=> u.email === reservedBy);
+      spanRight.textContent = user ? user.name : reservedBy;
+    } else {
+      spanRight.textContent = 'Disponível';
+    }
+    div.appendChild(spanLeft);
+    div.appendChild(spanRight);
+
+    // click handler: reserve or cancel
+    div.addEventListener('click', ()=> {
+      const cur = currentUser();
+      if(reservedBy){
+        // cancel: allow if owner or admin
+        if(cur === reservedBy || isAdminSession()){
+          if(confirm('Cancelar reserva de ' + period + ' em ' + dayStr + '?')){
+            // remove
+            removeReservationForDay(dayStr, period);
+            closeDayModal();
+            refreshCalendarAndUI();
+            alert('Reserva cancelada.');
+          }
+        } else {
+          alert('Apenas o dono da reserva pode cancelar (ou admin).');
+        }
+      } else {
+        // reserve
+        if(!cur){ alert('Faça login para reservar.'); return; }
+        // check if user already has reservation same day (1 period per day)
+        // find dayObj again from storage
+        const allx = reservas();
+        let userHas = false;
+        Object.keys(allx).forEach(wk=>{
+          if(allx[wk] && allx[wk][dayStr]){
+            const dObj = allx[wk][dayStr];
+            Object.keys(dObj).forEach(p=>{
+              if(dObj[p] === cur) userHas = true;
+            });
+          }
+        });
+        if(userHas){ alert('Você já tem 1 período reservado nesse dia.'); return; }
+        if(confirm('Confirmar reserva em ' + dayStr + ' — ' + period + '?')){
+          addReservationForDay(dayStr, period, cur);
+          closeDayModal();
+          refreshCalendarAndUI();
+          alert('Reservado!');
+        }
+      }
+    });
+    list.appendChild(div);
+  });
+}
+
+// helper to add reservation for a specific day (dayStr is 'YYYY-MM-DD')
+function addReservationForDay(dayStr, period, email){
+  const all = reservas();
+  // try to find a weekKey that already contains this day; if none, create a month-key using the day month start
+  let foundWeekKey = null;
+  Object.keys(all).forEach(k=>{
+    if(all[k] && all[k][dayStr]) foundWeekKey = k;
+  });
+  if(!foundWeekKey){
+    // use month start as key (YYYY-MM-01)
+    const d = new Date(dayStr);
+    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+    if(!all[monthStart]) all[monthStart] = {};
+    if(!all[monthStart][dayStr]) all[monthStart][dayStr] = {};
+    all[monthStart][dayStr][period] = email;
+  } else {
+    if(!all[foundWeekKey][dayStr]) all[foundWeekKey][dayStr] = {};
+    all[foundWeekKey][dayStr][period] = email;
+  }
+  save(STORAGE.RESERVAS, all);
+}
+
+// helper to remove reservation
+function removeReservationForDay(dayStr, period){
+  const all = reservas();
+  Object.keys(all).forEach(k=>{
+    if(all[k] && all[k][dayStr] && all[k][dayStr][period]){
+      delete all[k][dayStr][period];
+      if(Object.keys(all[k][dayStr]).length===0) delete all[k][dayStr];
+      // if that month/week key empty remove
+      if(Object.keys(all[k]).length===0) delete all[k];
+    }
+  });
+  save(STORAGE.RESERVAS, all);
+}
+
+// refresh UI and calendar events
+function refreshCalendarAndUI(){
+  renderMyReservations();
+  renderUsersTable();
+  renderKeysTable();
+  if(window._fcInstance){
+    window._fcInstance.removeAllEvents();
+    const ev = buildCalendarEvents();
+    ev.forEach(e => window._fcInstance.addEvent(e));
+    window._fcInstance.render();
+  }
+}
+
+// close modal
+function closeDayModal(){
+  $('#dayModal').style.display = 'none';
+}
+
+// attach close handler
+$('#closeDayModal').addEventListener('click', ()=> closeDayModal());
+$('#dayModal').addEventListener('click', (e)=> {
+  if(e.target === $('#dayModal')) closeDayModal();
+});
+
+/* initialize calendar */
+function initCalendar(){
+  const calendarEl = document.getElementById('calendar');
+  const fc = FullCalendar;
+  calendar = new fc.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'pt-br',
+    height: 'auto',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth'
+    },
+    selectable: true,
+    dateClick: function(info) {
+      openDayModal(info.dateStr);
+    },
+    events: function(fetchInfo, successCallback, failureCallback){
+      // build events from local reservas
+      try{
+        const ev = buildCalendarEvents();
+        successCallback(ev);
+      }catch(e){ failureCallback(e); }
+    },
+    eventDidMount: function(info){
+      // optionally add tooltip or styling
+    }
+  });
+  calendar.render();
+  window._fcInstance = calendar;
+}
+
+// admin clear month button (adjusted): remove all reservas in the current visible month
+$('#btnClearReservations').addEventListener('click', ()=>{
+  if(!isAdminSession()){ alert('Apenas admin.'); return; }
+  if(!window._fcInstance){ alert('Calendário não inicializado.'); return; }
+  const view = window._fcInstance.view;
+  const start = view.currentStart; const end = view.currentEnd;
+  if(confirm('Limpar todas as reservas entre ' + start.toLocaleDateString() + ' e ' + new Date(end.getTime()-1).toLocaleDateString() + '?')){
+    const all = reservas();
+    // remove any day that lies between start and end
+    Object.keys(all).forEach(k=>{
+      Object.keys(all[k]).forEach(day=>{
+        const d = new Date(day + 'T00:00:00');
+        if(d >= start && d < end){
+          delete all[k][day];
+        }
+      });
+      if(Object.keys(all[k]).length===0) delete all[k];
+    });
+    save(STORAGE.RESERVAS, all);
+    refreshCalendarAndUI();
+    alert('Reservas do período removidas.');
+  }
+});
+
+/* render my reservations */
+function renderMyReservations(){
+  const cur = currentUser();
+  const out = $('#myReservations');
+  if(!out) return;
+  if(!cur){ out.textContent = 'Faça login para ver suas reservas.'; return; }
+  const all = reservas();
+  const lines = [];
+  Object.keys(all).forEach(weekKey=>{
+    const weekData = all[weekKey];
+    Object.keys(weekData).forEach(day=>{
+      const periods = weekData[day];
+      Object.keys(periods).forEach(p=>{
+        if(periods[p] === cur) lines.push(`${day} — ${p}`);
+      });
+    });
+  });
+  if(lines.length){
+    out.innerHTML = lines.map(l=> `<div>${l} <button class="btn outline cancelBtn" style="margin-left:8px" data-day="${l.split(' — ')[0]}" data-period="${l.split(' — ')[1]}" type="button">Cancelar</button></div>`).join('');
+    $$('.cancelBtn').forEach(b=> b.addEventListener('click', (e)=>{ 
+      const day = e.currentTarget.dataset.day;
+      const period = e.currentTarget.dataset.period;
+      if(confirm('Cancelar reserva ' + day + ' — ' + period + '?')) {
+        removeReservationForDay(day, period);
+        refreshCalendarAndUI();
+        alert('Reserva cancelada.');
+      }
+    }));
+  } else {
+    out.textContent = 'Nenhuma reserva';
+  }
+}
+
+/* initial renders */
+renderKeysTable();
+renderUsersTable();
+renderUserArea();
+
+// initialize calendar after a tick so DOM ready & CSS applied
+setTimeout(()=> {
+  try{ initCalendar(); }catch(e){ console.error('Erro ao iniciar calendário', e); }
+}, 120);
+
+// allow admin session if stored
+if(isAdminSession()){
+  $('#adminArea').style.display='block';
+  $('#btnAdminLogout').style.display='inline-block';
+  $('#btnAdminLogin').style.display='none';
+}
+
+/* keyboard shortcuts for convenience (dev) */
+document.addEventListener('keydown',(e)=>{ if(e.key==='t') themeBtn.click(); });
+
+/* expose simple functions for debugging (optional) */
+window._jr_dump = ()=> ({users:users(), keys:keys(), reservas:reservas(), calendar: !!window._fcInstance});
+</script>
+</body>
+</html>
